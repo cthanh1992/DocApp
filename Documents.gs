@@ -91,7 +91,7 @@ function getFilesRecursive_(folder, files) {
       name: file.getName(),
       mimeType: file.getMimeType(),
       sizeBytes: fileSize, // Sử dụng biến an toàn
-      updatedAt: file.getLastUpdated(),
+      updatedAt: file.getLastUpdated().toISOString(), // Đã sửa lỗi: Thêm .toISOString()
       previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
       openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
       iconUrl: null
