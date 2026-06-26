@@ -69,7 +69,6 @@ function api_getFilesInFolder(email, sessionToken, folderKey) {
     return { success: false, message: 'Không thể đọc danh mục này. Vui lòng kiểm tra lại Folder ID hoặc quyền chia sẻ trên Drive. Chi tiết lỗi: ' + err.message, files: [] };
   }
 }
-
 /**
  * Hàm phụ trợ: Duyệt đệ quy để gom tất cả file từ thư mục cha vào các thư mục con
  */
@@ -78,11 +77,20 @@ function getFilesRecursive_(folder, files) {
   const fileIterator = folder.getFiles();
   while (fileIterator.hasNext()) {
     const file = fileIterator.next();
+    
+    // Xử lý an toàn: Lấy dung lượng file, bỏ qua lỗi nếu là file Google Docs/Sheets
+    let fileSize = 0;
+    try {
+      fileSize = file.getSize();
+    } catch (e) {
+      fileSize = 0; 
+    }
+
     files.push({
       id: file.getId(),
       name: file.getName(),
       mimeType: file.getMimeType(),
-      sizeBytes: file.getSize(),
+      sizeBytes: fileSize, // Sử dụng biến an toàn
       updatedAt: file.getLastUpdated(),
       previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
       openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
