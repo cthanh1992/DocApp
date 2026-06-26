@@ -69,7 +69,8 @@ function readSheetAsObjects_(sheetName) {
       headers.forEach((h, i) => { obj[h] = row[i]; });
       return obj;
     })
-    .filter(obj => obj.Email && String(obj.Email).trim() !== ''); // bỏ dòng trống
+    // Sửa tại đây: Kiểm tra dữ liệu ở cột đầu tiên (headers[0]) để loại bỏ dòng trống
+    .filter(obj => obj[headers[0]] !== undefined && String(obj[headers[0]]).trim() !== ''); 
 }
 
 /****************************************************************
