@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('CSS_Main'); ?>
+</head>
+<body>
+
+  <!-- ============ MÀN HÌNH LOADING BAN ĐẦU (kiểm tra session) ============ -->
+  <div id="screen-boot" class="screen screen-center">
+    <div class="boot-logo">
+      <div class="boot-mark">DOC</div>
+      <div class="boot-spinner"></div>
+    </div>
+  </div>
+
+  <!-- ============ MÀN HÌNH AUTH (ĐĂNG NHẬP / ĐĂNG KÝ / QUÊN MẬT KHẨU) ============ -->
+  <div id="screen-auth" class="screen screen-center" style="display:none;">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-mark">DOC</div>
+        <h1 class="brand-title">Tài liệu nội bộ</h1>
+        <p class="brand-sub" id="company-name-label">Hệ thống truy cập tài liệu công ty</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Đăng nhập</button>
+        <button class="auth-tab" data-tab="register">Đăng ký</button>
+        <button class="auth-tab" data-tab="forgot">Quên mật khẩu</button>
+      </div>
+
+      <!-- ---- TAB ĐĂNG NHẬP ---- -->
+      <form id="form-login" class="auth-form active" autocomplete="on">
+        <label class="field-label">Email công ty</label>
+        <input type="email" id="login-email" class="field-input" placeholder="ten.ban@congty.com" required autocomplete="username">
+
+        <label class="field-label">Mật khẩu</label>
+        <div class="field-password-wrap">
+          <input type="password" id="login-password" class="field-input" placeholder="Nhập mật khẩu" required autocomplete="current-password">
+          <button type="button" class="field-toggle-eye" data-target="login-password">Hiện</button>
+        </div>
+
+        <label class="field-checkbox">
+          <input type="checkbox" id="login-remember" checked>
+          <span>Duy trì đăng nhập trên thiết bị này</span>
+        </label>
+
+        <button type="submit" class="btn-primary">Đăng nhập</button>
+        <div class="form-message" id="login-message"></div>
+      </form>
+
+      <!-- ---- TAB ĐĂNG KÝ (2 bước) ---- -->
+      <form id="form-register-step1" class="auth-form" autocomplete="off">
+        <p class="form-hint">Nhập email công ty của bạn để nhận mã xác nhận đăng ký.</p>
+        <label class="field-label">Email công ty</label>
+        <input type="email" id="register-email" class="field-input" placeholder="ten.ban@congty.com" required autocomplete="username">
+        <button type="submit" class="btn-primary">Gửi mã xác nhận</button>
+        <div class="form-message" id="register-step1-message"></div>
+      </form>
+
+      <form id="form-register-step2" class="auth-form" autocomplete="off" style="display:none;">
+        <p class="form-hint">Mã xác nhận đã được gửi đến <b id="register-email-display"></b>. Nhập mã và đặt mật khẩu để hoàn tất đăng ký.</p>
+        <label class="field-label">Mã xác nhận (6 số)</label>
+        <input type="text" id="register-otp" class="field-input field-otp" placeholder="000000" maxlength="6" required inputmode="numeric">
+
+        <label class="field-label">Đặt mật khẩu</label>
+        <div class="field-password-wrap">
+          <input type="password" id="register-password" class="field-input" placeholder="Tối thiểu 8 ký tự" required autocomplete="new-password">
+          <button type="button" class="field-toggle-eye" data-target="register-password">Hiện</button>
+        </div>
+
+        <label class="field-label">Nhập lại mật khẩu</label>
+        <div class="field-password-wrap">
+          <input type="password" id="register-password2" class="field-input" placeholder="Nhập lại mật khẩu" required autocomplete="new-password">
+          <button type="button" class="field-toggle-eye" data-target="register-password2">Hiện</button>
+        </div>
+
+        <button type="submit" class="btn-primary">Hoàn tất đăng ký</button>
+        <button type="button" class="btn-link" id="register-back-link">← Nhập email khác</button>
+        <div class="form-message" id="register-step2-message"></div>
+      </form>
+
+      <!-- ---- TAB QUÊN MẬT KHẨU (2 bước) ---- -->
+      <form id="form-forgot-step1" class="auth-form" autocomplete="off">
+        <p class="form-hint">Nhập email công ty của bạn để nhận mã đặt lại mật khẩu.</p>
+        <label class="field-label">Email công ty</label>
+        <input type="email" id="forgot-email" class="field-input" placeholder="ten.ban@congty.com" required autocomplete="username">
+        <button type="submit" class="btn-primary">Gửi mã đặt lại</button>
+        <div class="form-message" id="forgot-step1-message"></div>
+      </form>
+
+      <form id="form-forgot-step2" class="auth-form" autocomplete="off" style="display:none;">
+        <p class="form-hint">Mã xác nhận đã được gửi đến <b id="forgot-email-display"></b>. Nhập mã và mật khẩu mới.</p>
+        <label class="field-label">Mã xác nhận (6 số)</label>
+        <input type="text" id="forgot-otp" class="field-input field-otp" placeholder="000000" maxlength="6" required inputmode="numeric">
+
+        <label class="field-label">Mật khẩu mới</label>
+        <div class="field-password-wrap">
+          <input type="password" id="forgot-password" class="field-input" placeholder="Tối thiểu 8 ký tự" required autocomplete="new-password">
+          <button type="button" class="field-toggle-eye" data-target="forgot-password">Hiện</button>
+        </div>
+
+        <label class="field-label">Nhập lại mật khẩu mới</label>
+        <div class="field-password-wrap">
+          <input type="password" id="forgot-password2" class="field-input" placeholder="Nhập lại mật khẩu mới" required autocomplete="new-password">
+          <button type="button" class="field-toggle-eye" data-target="forgot-password2">Hiện</button>
+        </div>
+
+        <button type="submit" class="btn-primary">Đặt lại mật khẩu</button>
+        <button type="button" class="btn-link" id="forgot-back-link">← Nhập email khác</button>
+        <div class="form-message" id="forgot-step2-message"></div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ============ MÀN HÌNH CHÍNH (SAU KHI ĐĂNG NHẬP) ============ -->
+  <div id="screen-main" class="screen" style="display:none;">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark small">DOC</div>
+        <span class="topbar-title">Tài liệu nội bộ</span>
+      </div>
+      <div class="topbar-user">
+        <span class="topbar-email" id="topbar-email"></span>
+        <button class="btn-logout" id="btn-logout">Đăng xuất</button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar danh mục folder -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-title">Danh mục tài liệu</div>
+        <div class="sidebar-list" id="folder-list">
+          <!-- JS sẽ render danh sách folder vào đây -->
+        </div>
+      </aside>
+
+      <!-- Vùng nội dung chính -->
+      <main class="content" id="content-area">
+        <div class="content-empty" id="content-empty-state">
+          <div class="empty-icon">📁</div>
+          <p>Chọn một danh mục tài liệu ở bên trái để xem nội dung.</p>
+        </div>
+
+        <!-- Danh sách file trong folder đang chọn -->
+        <div class="file-list-view" id="file-list-view" style="display:none;">
+          <div class="content-header">
+            <h2 id="current-folder-name">—</h2>
+            <button class="btn-secondary" id="btn-back-to-list">← Danh sách file</button>
+          </div>
+          <div class="file-grid" id="file-grid"></div>
+        </div>
+
+        <!-- Xem trực tiếp 1 file -->
+        <div class="file-viewer-view" id="file-viewer-view" style="display:none;">
+          <div class="content-header">
+            <h2 id="current-file-name">—</h2>
+            <div class="viewer-actions">
+              <a class="btn-secondary" id="btn-open-new-tab" target="_blank" rel="noopener">Mở tab mới / In / Tải về</a>
+              <button class="btn-secondary" id="btn-back-to-files">← Quay lại</button>
+            </div>
+          </div>
+          <div class="viewer-frame-wrap">
+            <iframe id="file-viewer-iframe" class="viewer-frame" src="" allow="autoplay"></iframe>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <?!= include('JS_Main'); ?>
+</body>
+</html>
