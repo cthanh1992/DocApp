@@ -3,9 +3,7 @@
  ****************************************************************/
 
 /**
- * Trả về danh sách folder mà email này được phép truy cập,
- * dựa trên sheet Permissions (cột Email, FolderId/FolderKey).
- * Thông tin tên + ID folder thật lấy từ sheet Folders.
+ * Trả về danh sách folder mà email này được phép truy cập
  */
 function api_getAccessibleFolders(email, sessionToken) {
   const session = api_checkSession(email, sessionToken);
@@ -17,7 +15,6 @@ function api_getAccessibleFolders(email, sessionToken) {
   const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
   const allFolders = readSheetAsObjects_(CONFIG.SHEET_FOLDERS);
 
-  // Lấy danh sách FolderKey mà user này được cấp quyền
   const allowedKeys = permissions
     .filter(p => normalizeEmail_(p.Email) === email)
     .map(p => String(p.FolderKey).trim());
@@ -30,13 +27,11 @@ function api_getAccessibleFolders(email, sessionToken) {
       folderId: f.FolderId,
       description: f.Description || ''
     }));
-
   return { success: true, folders: folders };
 }
 
 /**
- * Trả về danh sách file (tên, id, loại, link xem/tải) trong 1 folder,
- * SAU KHI đã kiểm tra email có quyền truy cập folder đó hay không.
+ * Trả về danh sách toàn bộ file trong folder và các folder con
  */
 function api_getFilesInFolder(email, sessionToken, folderKey) {
   const session = api_checkSession(email, sessionToken);
@@ -63,28 +58,42 @@ function api_getFilesInFolder(email, sessionToken, folderKey) {
   try {
     const folder = DriveApp.getFolderById(folderInfo.FolderId);
     const files = [];
-    const it = folder.getFiles();
-    while (it.hasNext()) {
-      const file = it.next();
-      files.push({
-        id: file.getId(),
-        name: file.getName(),
-        mimeType: file.getMimeType(),
-        sizeBytes: file.getSize(),
-        updatedAt: file.getLastUpdated(),
-        // Link xem trực tiếp (embed) trên Drive - hỗ trợ xem, in, tải tuỳ quyền share của file
-        previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
-        // Link mở trực tiếp trên tab mới (đầy đủ tính năng xem/tải/in của Drive viewer)
-        openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
-        iconUrl: file.getThumbnail() ? null : null
-      });
-    }
+    
+    // Thực hiện quét đệ quy lấy toàn bộ file ở thư mục gốc và thư mục con
+    getFilesRecursive_(folder, files);
 
-    // Sắp xếp theo tên
+    // Sắp xếp danh sách file theo thứ tự bảng chữ cái câu chữ tiếng Việt
     files.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-
     return { success: true, folderName: folderInfo.FolderName, files: files };
   } catch (err) {
     return { success: false, message: 'Không thể đọc danh mục này. Vui lòng kiểm tra lại Folder ID hoặc quyền chia sẻ trên Drive. Chi tiết lỗi: ' + err.message, files: [] };
+  }
+}
+
+/**
+ * Hàm phụ trợ: Duyệt đệ quy để gom tất cả file từ thư mục cha vào các thư mục con
+ */
+function getFilesRecursive_(folder, files) {
+  // 1. Quét tất cả file ở cấp thư mục hiện tại
+  const fileIterator = folder.getFiles();
+  while (fileIterator.hasNext()) {
+    const file = fileIterator.next();
+    files.push({
+      id: file.getId(),
+      name: file.getName(),
+      mimeType: file.getMimeType(),
+      sizeBytes: file.getSize(),
+      updatedAt: file.getLastUpdated(),
+      previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
+      openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+      iconUrl: null
+    });
+  }
+  
+  // 2. Tìm các thư mục con và tiếp tục đào sâu để quét file bên trong chúng
+  const folderIterator = folder.getFolders();
+  while (folderIterator.hasNext()) {
+    const subFolder = folderIterator.next();
+    getFilesRecursive_(subFolder, files);
   }
 }
