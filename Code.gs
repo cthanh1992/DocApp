@@ -1,35 +1,14 @@
-/****************************************************************
- * CẤU HÌNH CHUNG - SỬA CÁC GIÁ TRỊ NÀY CHO PHÙ HỢP VỚI CÔNG TY BẠN
- ****************************************************************/
 const CONFIG = {
-  // ID của Google Sheet dùng làm database (lấy từ URL sheet, đoạn giữa /d/ và /edit)
   SHEET_ID: '1NJPMpHlHWBwwb7F2x1AuXflaqpw5A7lJYlGWVgQGRVw',
-
-  // Tên miền email công ty (dùng để chặn đăng ký email ngoài công ty)
-  // Ví dụ: nếu email công ty là user@mycompany.com thì điền 'mycompany.com'
   COMPANY_DOMAIN: 'hoptrisummit.com',
-
-  // Tên công ty hiển thị trên giao diện và trong email
   COMPANY_NAME: 'Hợp Trí Summit',
-
-  // Tên 2 sheet (tab) trong Google Sheet, không cần đổi nếu dùng đúng template đi kèm
   SHEET_USERS: 'Users',
   SHEET_PERMISSIONS: 'Permissions',
   SHEET_FOLDERS: 'Folders',
-
-  // Thời hạn của token đăng ký / quên mật khẩu (phút)
   TOKEN_EXPIRY_MINUTES: 15,
-
-  // Thời hạn của session đăng nhập (ngày) - "ghi nhớ đăng nhập"
   SESSION_EXPIRY_DAYS: 30,
-
-  // Email gửi đi sẽ có tên hiển thị (From name) là tên công ty
-  // (Apps Script sẽ gửi bằng địa chỉ Gmail của người sở hữu script)
 };
 
-/****************************************************************
- * ENTRY POINT - HIỂN THỊ TRANG WEB
- ****************************************************************/
 function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
@@ -38,14 +17,10 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// Cho phép include file HTML/CSS/JS riêng vào trong template chính
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-/****************************************************************
- * TRUY CẬP SHEET - HELPER
- ****************************************************************/
 function getSheet_(sheetName) {
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   let sheet = ss.getSheetByName(sheetName);
@@ -55,7 +30,6 @@ function getSheet_(sheetName) {
   return sheet;
 }
 
-// Đọc toàn bộ dữ liệu của 1 sheet thành mảng object, dùng dòng đầu làm tên cột
 function readSheetAsObjects_(sheetName) {
   const sheet = getSheet_(sheetName);
   const range = sheet.getDataRange();
@@ -65,17 +39,14 @@ function readSheetAsObjects_(sheetName) {
   const rows = values.slice(1);
   return rows
     .map((row, idx) => {
-      const obj = { _row: idx + 2 }; // số dòng thật trong sheet (idx+2 vì header ở dòng 1)
+      const obj = { _row: idx + 2 };
       headers.forEach((h, i) => { obj[h] = row[i]; });
       return obj;
     })
-    // Sửa tại đây: Kiểm tra dữ liệu ở cột đầu tiên (headers[0]) để loại bỏ dòng trống
-    .filter(obj => obj[headers[0]] !== undefined && String(obj[headers[0]]).trim() !== ''); 
+    // Fix: Kiểm tra cột đầu tiên thay vì gán chết cột Email
+    .filter(obj => obj[headers[0]] !== undefined && String(obj[headers[0]]).trim() !== '');
 }
 
-/****************************************************************
- * UTILITY
- ****************************************************************/
 function normalizeEmail_(email) {
   return String(email || '').trim().toLowerCase();
 }
@@ -97,7 +68,6 @@ function generateToken_(length) {
   return token;
 }
 
-// Sinh OTP 6 số (dùng cho token email - dễ nhập hơn token dài)
 function generateOtp_() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
