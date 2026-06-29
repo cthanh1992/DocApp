@@ -8,9 +8,16 @@ function api_getAccessibleFolders(email, sessionToken) {
   const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
   const allFolders = readSheetAsObjects_(CONFIG.SHEET_FOLDERS);
 
-  const allowedKeys = permissions
-    .filter(p => normalizeEmail_(p.Email) === email)
-    .map(p => String(p.FolderKey).trim());
+  // --- CẬP NHẬT: Lấy danh sách FolderKey từ 1 dòng, cắt bằng dấu phẩy ---
+  let allowedKeys = [];
+  const userPermissionRow = permissions.find(p => normalizeEmail_(p.Email) === email);
+  if (userPermissionRow && userPermissionRow.FolderKey) {
+    allowedKeys = String(userPermissionRow.FolderKey)
+      .split(',')                     // Cắt chuỗi theo dấu phẩy
+      .map(k => k.trim())             // Loại bỏ khoảng trắng 2 đầu mỗi key
+      .filter(k => k !== '');         // Bỏ qua các giá trị rỗng (ví dụ người dùng gõ dư dấu phẩy)
+  }
+  // ----------------------------------------------------------------------
 
   const folders = allFolders
     .filter(f => allowedKeys.includes(String(f.FolderKey).trim()))
@@ -31,9 +38,18 @@ function api_getFilesInFolder(email, sessionToken, folderKey, subFolderId) {
   email = normalizeEmail_(email);
 
   const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
-  const hasAccess = permissions.some(p =>
-    normalizeEmail_(p.Email) === email && String(p.FolderKey).trim() === String(folderKey).trim()
-  );
+  
+  // --- CẬP NHẬT: Kiểm tra quyền truy cập theo mảng sau khi cắt dấu phẩy ---
+  let hasAccess = false;
+  const userPermissionRow = permissions.find(p => normalizeEmail_(p.Email) === email);
+  if (userPermissionRow && userPermissionRow.FolderKey) {
+    const allowedKeys = String(userPermissionRow.FolderKey)
+      .split(',')
+      .map(k => k.trim());
+    hasAccess = allowedKeys.includes(String(folderKey).trim());
+  }
+  // ------------------------------------------------------------------------
+
   if (!hasAccess) {
     return { success: false, message: 'Bạn không có quyền truy cập danh mục này.', files: [] };
   }
