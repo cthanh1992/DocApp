@@ -1,30 +1,15 @@
 <script>
-  /****************************************************************
-   * STATE & STORAGE
-   ****************************************************************/
   const STORAGE_KEY = 'docapp_session_v1';
-  let currentSession = null; // { email, sessionToken }
+  let currentSession = null;
   let currentFolders = [];
   let currentFolderKey = null;
   let pendingRegisterEmail = '';
   let pendingResetEmail = '';
 
-  function saveSessionLocal(email, sessionToken) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ email, sessionToken }));
-  }
-  function readSessionLocal() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-  }
-  function clearSessionLocal() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+  function saveSessionLocal(email, sessionToken) { localStorage.setItem(STORAGE_KEY, JSON.stringify({ email, sessionToken })); }
+  function readSessionLocal() { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+  function clearSessionLocal() { localStorage.removeItem(STORAGE_KEY); }
 
-  /****************************************************************
-   * SCREEN SWITCHING
-   ****************************************************************/
   function showScreen(id) {
     ['screen-boot', 'screen-auth', 'screen-main'].forEach(s => {
       const el = document.getElementById(s);
@@ -32,11 +17,6 @@
     });
   }
 
-  /****************************************************************
-   * MỌI THAO TÁC TRUY CẬP DOM CHỈ CHẠY SAU KHI DOM ĐÃ SẴN SÀNG
-   * (tránh lỗi "Cannot read properties of null" khi script
-   * thực thi trước khi các phần tử HTML phía trên được parse xong)
-   ****************************************************************/
   document.addEventListener('DOMContentLoaded', initApp);
 
   function initApp() {
@@ -50,42 +30,24 @@
     boot();
   }
 
-  /****************************************************************
-   * BOOT - kiểm tra session lưu sẵn khi load trang
-   ****************************************************************/
   function boot() {
     const saved = readSessionLocal();
-    if (!saved || !saved.email || !saved.sessionToken) {
-      showScreen('screen-auth');
-      return;
-    }
+    if (!saved || !saved.email || !saved.sessionToken) { showScreen('screen-auth'); return; }
     google.script.run
       .withSuccessHandler(function (res) {
-        if (res && res.valid) {
-          currentSession = saved;
-          enterMainApp();
-        } else {
-          clearSessionLocal();
-          showScreen('screen-auth');
-        }
+        if (res && res.valid) { currentSession = saved; enterMainApp(); } 
+        else { clearSessionLocal(); showScreen('screen-auth'); }
       })
-      .withFailureHandler(function () {
-        clearSessionLocal();
-        showScreen('screen-auth');
-      })
+      .withFailureHandler(function () { clearSessionLocal(); showScreen('screen-auth'); })
       .api_checkSession(saved.email, saved.sessionToken);
   }
 
-  /****************************************************************
-   * AUTH TABS
-   ****************************************************************/
   function bindAuthTabEvents() {
     document.querySelectorAll('.auth-tab').forEach(tab => {
       tab.addEventListener('click', function () {
         document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
         this.classList.add('active');
-
         const tabName = this.dataset.tab;
         if (tabName === 'login') document.getElementById('form-login').classList.add('active');
         if (tabName === 'register') document.getElementById('form-register-step1').classList.add('active');
@@ -98,55 +60,38 @@
     document.querySelectorAll('.field-toggle-eye').forEach(btn => {
       btn.addEventListener('click', function () {
         const input = document.getElementById(this.dataset.target);
-        if (input.type === 'password') {
-          input.type = 'text'; this.textContent = 'Ẩn';
-        } else {
-          input.type = 'password'; this.textContent = 'Hiện';
-        }
+        if (input.type === 'password') { input.type = 'text'; this.textContent = 'Ẩn'; } 
+        else { input.type = 'password'; this.textContent = 'Hiện'; }
       });
     });
   }
 
   function showMessage(elId, text, type) {
     const el = document.getElementById(elId);
-    el.textContent = text;
-    el.className = 'form-message show ' + (type || '');
+    el.textContent = text; el.className = 'form-message show ' + (type || '');
   }
-  function clearMessage(elId) {
-    const el = document.getElementById(elId);
-    el.className = 'form-message';
-  }
+  function clearMessage(elId) { document.getElementById(elId).className = 'form-message'; }
   function setButtonLoading(btn, loading, loadingText, normalText) {
-    btn.disabled = loading;
-    btn.textContent = loading ? loadingText : normalText;
+    btn.disabled = loading; btn.textContent = loading ? loadingText : normalText;
   }
 
-  /****************************************************************
-   * ĐĂNG NHẬP
-   ****************************************************************/
   function bindLoginForm() {
     document.getElementById('form-login').addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearMessage('login-message');
+      e.preventDefault(); clearMessage('login-message');
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
       const remember = document.getElementById('login-remember').checked;
       const btn = this.querySelector('button[type="submit"]');
 
       setButtonLoading(btn, true, 'Đang đăng nhập...', 'Đăng nhập');
-
       google.script.run
         .withSuccessHandler(function (res) {
           setButtonLoading(btn, false, '', 'Đăng nhập');
           if (res.success) {
             currentSession = { email: res.email, sessionToken: res.sessionToken };
-            if (remember) {
-              saveSessionLocal(res.email, res.sessionToken);
-            }
+            if (remember) saveSessionLocal(res.email, res.sessionToken);
             enterMainApp();
-          } else {
-            showMessage('login-message', res.message, 'error');
-          }
+          } else { showMessage('login-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
           setButtonLoading(btn, false, '', 'Đăng nhập');
@@ -156,18 +101,13 @@
     });
   }
 
-  /****************************************************************
-   * ĐĂNG KÝ - BƯỚC 1 & 2
-   ****************************************************************/
   function bindRegisterForms() {
     document.getElementById('form-register-step1').addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearMessage('register-step1-message');
+      e.preventDefault(); clearMessage('register-step1-message');
       const email = document.getElementById('register-email').value.trim();
       const btn = this.querySelector('button[type="submit"]');
 
       setButtonLoading(btn, true, 'Đang gửi...', 'Gửi mã xác nhận');
-
       google.script.run
         .withSuccessHandler(function (res) {
           setButtonLoading(btn, false, '', 'Gửi mã xác nhận');
@@ -176,9 +116,7 @@
             document.getElementById('register-email-display').textContent = email;
             document.getElementById('form-register-step1').style.display = 'none';
             document.getElementById('form-register-step2').style.display = 'flex';
-          } else {
-            showMessage('register-step1-message', res.message, 'error');
-          }
+          } else { showMessage('register-step1-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
           setButtonLoading(btn, false, '', 'Gửi mã xác nhận');
@@ -194,20 +132,15 @@
     });
 
     document.getElementById('form-register-step2').addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearMessage('register-step2-message');
+      e.preventDefault(); clearMessage('register-step2-message');
       const otp = document.getElementById('register-otp').value.trim();
       const pwd1 = document.getElementById('register-password').value;
       const pwd2 = document.getElementById('register-password2').value;
       const btn = this.querySelector('button[type="submit"]');
 
-      if (pwd1 !== pwd2) {
-        showMessage('register-step2-message', 'Hai mật khẩu nhập không khớp.', 'error');
-        return;
-      }
+      if (pwd1 !== pwd2) { showMessage('register-step2-message', 'Hai mật khẩu không khớp.', 'error'); return; }
 
       setButtonLoading(btn, true, 'Đang xử lý...', 'Hoàn tất đăng ký');
-
       google.script.run
         .withSuccessHandler(function (res) {
           setButtonLoading(btn, false, '', 'Hoàn tất đăng ký');
@@ -224,30 +157,23 @@
               document.querySelector('.auth-tab[data-tab="login"]').click();
               document.getElementById('login-email').value = pendingRegisterEmail;
             }, 1600);
-          } else {
-            showMessage('register-step2-message', res.message, 'error');
-          }
+          } else { showMessage('register-step2-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
           setButtonLoading(btn, false, '', 'Hoàn tất đăng ký');
-          showMessage('register-step2-message', 'Có lỗi xảy ra: ' + err.message, 'error');
+          showMessage('register-step2-message', 'Lỗi: ' + err.message, 'error');
         })
         .api_completeRegister(pendingRegisterEmail, otp, pwd1);
     });
   }
 
-  /****************************************************************
-   * QUÊN MẬT KHẨU - BƯỚC 1 & 2
-   ****************************************************************/
   function bindForgotForms() {
     document.getElementById('form-forgot-step1').addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearMessage('forgot-step1-message');
+      e.preventDefault(); clearMessage('forgot-step1-message');
       const email = document.getElementById('forgot-email').value.trim();
       const btn = this.querySelector('button[type="submit"]');
 
       setButtonLoading(btn, true, 'Đang gửi...', 'Gửi mã đặt lại');
-
       google.script.run
         .withSuccessHandler(function (res) {
           setButtonLoading(btn, false, '', 'Gửi mã đặt lại');
@@ -256,13 +182,11 @@
             document.getElementById('forgot-email-display').textContent = email;
             document.getElementById('form-forgot-step1').style.display = 'none';
             document.getElementById('form-forgot-step2').style.display = 'flex';
-          } else {
-            showMessage('forgot-step1-message', res.message, 'error');
-          }
+          } else { showMessage('forgot-step1-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
           setButtonLoading(btn, false, '', 'Gửi mã đặt lại');
-          showMessage('forgot-step1-message', 'Có lỗi xảy ra: ' + err.message, 'error');
+          showMessage('forgot-step1-message', 'Lỗi: ' + err.message, 'error');
         })
         .api_requestPasswordReset(email);
     });
@@ -274,20 +198,15 @@
     });
 
     document.getElementById('form-forgot-step2').addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearMessage('forgot-step2-message');
+      e.preventDefault(); clearMessage('forgot-step2-message');
       const otp = document.getElementById('forgot-otp').value.trim();
       const pwd1 = document.getElementById('forgot-password').value;
       const pwd2 = document.getElementById('forgot-password2').value;
       const btn = this.querySelector('button[type="submit"]');
 
-      if (pwd1 !== pwd2) {
-        showMessage('forgot-step2-message', 'Hai mật khẩu nhập không khớp.', 'error');
-        return;
-      }
+      if (pwd1 !== pwd2) { showMessage('forgot-step2-message', 'Mật khẩu không khớp.', 'error'); return; }
 
       setButtonLoading(btn, true, 'Đang xử lý...', 'Đặt lại mật khẩu');
-
       google.script.run
         .withSuccessHandler(function (res) {
           setButtonLoading(btn, false, '', 'Đặt lại mật khẩu');
@@ -304,30 +223,22 @@
               document.querySelector('.auth-tab[data-tab="login"]').click();
               document.getElementById('login-email').value = pendingResetEmail;
             }, 1600);
-          } else {
-            showMessage('forgot-step2-message', res.message, 'error');
-          }
+          } else { showMessage('forgot-step2-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
           setButtonLoading(btn, false, '', 'Đặt lại mật khẩu');
-          showMessage('forgot-step2-message', 'Có lỗi xảy ra: ' + err.message, 'error');
+          showMessage('forgot-step2-message', 'Lỗi: ' + err.message, 'error');
         })
         .api_completePasswordReset(pendingResetEmail, otp, pwd1);
     });
   }
 
-  /****************************************************************
-   * ĐĂNG XUẤT
-   ****************************************************************/
   function bindLogoutButton() {
     document.getElementById('btn-logout').addEventListener('click', function () {
       if (!currentSession) return;
       google.script.run
         .withSuccessHandler(function () {
-          clearSessionLocal();
-          currentSession = null;
-          currentFolders = [];
-          currentFolderKey = null;
+          clearSessionLocal(); currentSession = null; currentFolders = []; currentFolderKey = null;
           document.getElementById('form-login').reset();
           document.querySelectorAll('.form-message').forEach(el => el.className = 'form-message');
           document.querySelector('.auth-tab[data-tab="login"]').click();
@@ -337,9 +248,6 @@
     });
   }
 
-  /****************************************************************
-   * VÀO MÀN HÌNH CHÍNH - LOAD DANH MỤC FOLDER
-   ****************************************************************/
   function enterMainApp() {
     document.getElementById('topbar-email').textContent = currentSession.email;
     showScreen('screen-main');
@@ -352,23 +260,18 @@
 
     google.script.run
       .withSuccessHandler(function (res) {
-        if (!res.success) {
-          listEl.innerHTML = '<div class="sidebar-empty">' + escapeHtml(res.message) + '</div>';
-          return;
-        }
+        if (!res.success) { listEl.innerHTML = '<div class="sidebar-empty">' + escapeHtml(res.message) + '</div>'; return; }
         currentFolders = res.folders;
         renderFolderList();
       })
-      .withFailureHandler(function (err) {
-        listEl.innerHTML = '<div class="sidebar-empty">Lỗi tải danh mục: ' + escapeHtml(err.message) + '</div>';
-      })
+      .withFailureHandler(function (err) { listEl.innerHTML = '<div class="sidebar-empty">Lỗi: ' + escapeHtml(err.message) + '</div>'; })
       .api_getAccessibleFolders(currentSession.email, currentSession.sessionToken);
   }
 
   function renderFolderList() {
     const listEl = document.getElementById('folder-list');
     if (!currentFolders.length) {
-      listEl.innerHTML = '<div class="sidebar-empty">Bạn chưa được cấp quyền xem danh mục tài liệu nào. Vui lòng liên hệ quản trị hệ thống.</div>';
+      listEl.innerHTML = '<div class="sidebar-empty">Chưa có quyền xem tài liệu.</div>';
       return;
     }
     listEl.innerHTML = '';
@@ -381,9 +284,6 @@
     });
   }
 
-  /****************************************************************
-   * MỞ FOLDER - HIỂN THỊ DANH SÁCH FILE
-   ****************************************************************/
   function bindFolderNavigationButtons() {
     document.getElementById('btn-back-to-list').addEventListener('click', function () {
       currentFolderKey = null;
@@ -391,7 +291,6 @@
       document.getElementById('file-list-view').style.display = 'none';
       document.getElementById('content-empty-state').style.display = '';
     });
-
     document.getElementById('btn-back-to-files').addEventListener('click', function () {
       document.getElementById('file-viewer-iframe').src = '';
       document.getElementById('file-viewer-view').style.display = 'none';
@@ -399,7 +298,7 @@
     });
   }
 
-  function openFolder(folderKey) {
+  function openFolder(folderKey, subFolderId) {
     currentFolderKey = folderKey;
     renderFolderList();
 
@@ -420,7 +319,7 @@
       .withFailureHandler(function (err) {
         document.getElementById('file-grid').innerHTML = '<div class="sidebar-empty">Lỗi: ' + escapeHtml(err.message) + '</div>';
       })
-      .api_getFilesInFolder(currentSession.email, currentSession.sessionToken, folderKey);
+      .api_getFilesInFolder(currentSession.email, currentSession.sessionToken, folderKey, subFolderId);
   }
 
   function renderFileGrid(files) {
@@ -433,30 +332,29 @@
     files.forEach(function (file) {
       const card = document.createElement('div');
       card.className = 'file-card';
+      const metaText = file.mimeType === 'application/vnd.google-apps.folder' ? 'Thư mục' : formatBytes(file.sizeBytes);
       card.innerHTML =
         '<div class="file-card-icon">' + iconForMime(file.mimeType) + '</div>' +
         '<div class="file-card-name">' + escapeHtml(file.name) + '</div>' +
-        '<div class="file-card-meta">' + formatBytes(file.sizeBytes) + '</div>';
-      card.addEventListener('click', function () { openFileViewer(file); });
+        '<div class="file-card-meta">' + metaText + '</div>';
+      
+      if (file.mimeType === 'application/vnd.google-apps.folder') {
+        card.addEventListener('click', function () { openFolder(currentFolderKey, file.id); });
+      } else {
+        card.addEventListener('click', function () { openFileViewer(file); });
+      }
       grid.appendChild(card);
     });
   }
 
-  /****************************************************************
-   * XEM FILE TRỰC TIẾP (EMBED DRIVE VIEWER)
-   ****************************************************************/
   function openFileViewer(file) {
     document.getElementById('current-file-name').textContent = file.name;
     document.getElementById('file-viewer-iframe').src = file.previewUrl;
     document.getElementById('btn-open-new-tab').href = file.openUrl;
-
     document.getElementById('file-list-view').style.display = 'none';
     document.getElementById('file-viewer-view').style.display = '';
   }
 
-  /****************************************************************
-   * HELPERS HIỂN THỊ
-   ****************************************************************/
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
