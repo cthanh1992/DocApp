@@ -1,10 +1,3 @@
-/****************************************************************
- * DOCUMENTS.GS - LẤY DANH MỤC FOLDER/TÀI LIỆU THEO PHÂN QUYỀN
- ****************************************************************/
-
-/**
- * Trả về danh sách folder mà email này được phép truy cập
- */
 function api_getAccessibleFolders(email, sessionToken) {
   const session = api_checkSession(email, sessionToken);
   if (!session.valid) {
@@ -30,17 +23,13 @@ function api_getAccessibleFolders(email, sessionToken) {
   return { success: true, folders: folders };
 }
 
-/**
- * Trả về danh sách toàn bộ file trong folder và các folder con
- */
-function api_getFilesInFolder(email, sessionToken, folderKey) {
+function api_getFilesInFolder(email, sessionToken, folderKey, subFolderId) {
   const session = api_checkSession(email, sessionToken);
   if (!session.valid) {
     return { success: false, message: 'Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.', files: [] };
   }
   email = normalizeEmail_(email);
 
-  // Kiểm tra quyền truy cập folderKey này
   const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
   const hasAccess = permissions.some(p =>
     normalizeEmail_(p.Email) === email && String(p.FolderKey).trim() === String(folderKey).trim()
@@ -56,52 +45,49 @@ function api_getFilesInFolder(email, sessionToken, folderKey) {
   }
 
   try {
-    const folder = DriveApp.getFolderById(folderInfo.FolderId);
+    const targetFolderId = subFolderId || folderInfo.FolderId;
+    const folder = DriveApp.getFolderById(targetFolderId);
     const files = [];
     
-    // Thực hiện quét đệ quy lấy toàn bộ file ở thư mục gốc và thư mục con
-    getFilesRecursive_(folder, files);
-
-    // Sắp xếp danh sách file theo thứ tự bảng chữ cái câu chữ tiếng Việt
-    files.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-    return { success: true, folderName: folderInfo.FolderName, files: files };
-  } catch (err) {
-    return { success: false, message: 'Không thể đọc danh mục này. Vui lòng kiểm tra lại Folder ID hoặc quyền chia sẻ trên Drive. Chi tiết lỗi: ' + err.message, files: [] };
-  }
-}
-/**
- * Hàm phụ trợ: Duyệt đệ quy để gom tất cả file từ thư mục cha vào các thư mục con
- */
-function getFilesRecursive_(folder, files) {
-  // 1. Quét tất cả file ở cấp thư mục hiện tại
-  const fileIterator = folder.getFiles();
-  while (fileIterator.hasNext()) {
-    const file = fileIterator.next();
-    
-    // Xử lý an toàn: Lấy dung lượng file, bỏ qua lỗi nếu là file Google Docs/Sheets
-    let fileSize = 0;
-    try {
-      fileSize = file.getSize();
-    } catch (e) {
-      fileSize = 0; 
+    // 1. Quét Thư mục con
+    const folderIterator = folder.getFolders();
+    while (folderIterator.hasNext()) {
+      const subFolder = folderIterator.next();
+      files.push({
+        id: subFolder.getId(),
+        name: subFolder.getName(),
+        mimeType: 'application/vnd.google-apps.folder',
+        sizeBytes: 0,
+        updatedAt: subFolder.getLastUpdated().toISOString(),
+        previewUrl: '',
+        openUrl: subFolder.getUrl(),
+        iconUrl: null
+      });
     }
 
-    files.push({
-      id: file.getId(),
-      name: file.getName(),
-      mimeType: file.getMimeType(),
-      sizeBytes: fileSize, // Sử dụng biến an toàn
-      updatedAt: file.getLastUpdated().toISOString(), // Đã sửa lỗi: Thêm .toISOString()
-      previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
-      openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
-      iconUrl: null
-    });
-  }
-  
-  // 2. Tìm các thư mục con và tiếp tục đào sâu để quét file bên trong chúng
-  const folderIterator = folder.getFolders();
-  while (folderIterator.hasNext()) {
-    const subFolder = folderIterator.next();
-    getFilesRecursive_(subFolder, files);
+    // 2. Quét File
+    const fileIterator = folder.getFiles();
+    while (fileIterator.hasNext()) {
+      const file = fileIterator.next();
+      let fileSize = 0;
+      try { fileSize = file.getSize(); } catch (e) { fileSize = 0; }
+
+      files.push({
+        id: file.getId(),
+        name: file.getName(),
+        mimeType: file.getMimeType(),
+        sizeBytes: fileSize,
+        updatedAt: file.getLastUpdated().toISOString(),
+        previewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/preview',
+        openUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+        iconUrl: null
+      });
+    }
+
+    files.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    const currentFolderName = subFolderId ? folder.getName() : folderInfo.FolderName;
+    return { success: true, folderName: currentFolderName, files: files };
+  } catch (err) {
+    return { success: false, message: 'Không thể đọc danh mục này. Lỗi: ' + err.message, files: [] };
   }
 }
