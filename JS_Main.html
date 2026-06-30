@@ -60,8 +60,8 @@
     document.querySelectorAll('.field-toggle-eye').forEach(btn => {
       btn.addEventListener('click', function () {
         const input = document.getElementById(this.dataset.target);
-        if (input.type === 'password') { input.type = 'text'; this.textContent = 'Ẩn'; } 
-        else { input.type = 'password'; this.textContent = 'Hiện'; }
+        if (input.type === 'password') { input.type = 'text'; this.textContent = 'Ẩn / Hide'; } 
+        else { input.type = 'password'; this.textContent = 'Hiện / Show'; }
       });
     });
   }
@@ -72,7 +72,7 @@
   }
   function clearMessage(elId) { document.getElementById(elId).className = 'form-message'; }
   function setButtonLoading(btn, loading, loadingText, normalText) {
-    btn.disabled = loading; btn.textContent = loading ? loadingText : normalText;
+    btn.disabled = loading; btn.innerHTML = loading ? loadingText : normalText;
   }
 
   function bindLoginForm() {
@@ -83,10 +83,10 @@
       const remember = document.getElementById('login-remember').checked;
       const btn = this.querySelector('button[type="submit"]');
 
-      setButtonLoading(btn, true, 'Đang đăng nhập...', 'Đăng nhập');
+      setButtonLoading(btn, true, 'Đang đăng nhập... / Logging in...', 'Đăng nhập / Login');
       google.script.run
         .withSuccessHandler(function (res) {
-          setButtonLoading(btn, false, '', 'Đăng nhập');
+          setButtonLoading(btn, false, '', 'Đăng nhập / Login');
           if (res.success) {
             currentSession = { email: res.email, sessionToken: res.sessionToken };
             if (remember) saveSessionLocal(res.email, res.sessionToken);
@@ -94,8 +94,8 @@
           } else { showMessage('login-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
-          setButtonLoading(btn, false, '', 'Đăng nhập');
-          showMessage('login-message', 'Có lỗi xảy ra: ' + err.message, 'error');
+          setButtonLoading(btn, false, '', 'Đăng nhập / Login');
+          showMessage('login-message', 'Lỗi / Error: ' + err.message, 'error');
         })
         .api_login(email, password, remember);
     });
@@ -107,10 +107,10 @@
       const email = document.getElementById('register-email').value.trim();
       const btn = this.querySelector('button[type="submit"]');
 
-      setButtonLoading(btn, true, 'Đang gửi...', 'Gửi mã xác nhận');
+      setButtonLoading(btn, true, 'Đang gửi... / Sending...', 'Gửi mã xác nhận / Send OTP');
       google.script.run
         .withSuccessHandler(function (res) {
-          setButtonLoading(btn, false, '', 'Gửi mã xác nhận');
+          setButtonLoading(btn, false, '', 'Gửi mã xác nhận / Send OTP');
           if (res.success) {
             pendingRegisterEmail = email;
             document.getElementById('register-email-display').textContent = email;
@@ -119,8 +119,8 @@
           } else { showMessage('register-step1-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
-          setButtonLoading(btn, false, '', 'Gửi mã xác nhận');
-          showMessage('register-step1-message', 'Có lỗi xảy ra: ' + err.message, 'error');
+          setButtonLoading(btn, false, '', 'Gửi mã xác nhận / Send OTP');
+          showMessage('register-step1-message', 'Lỗi / Error: ' + err.message, 'error');
         })
         .api_requestRegister(email);
     });
@@ -138,12 +138,12 @@
       const pwd2 = document.getElementById('register-password2').value;
       const btn = this.querySelector('button[type="submit"]');
 
-      if (pwd1 !== pwd2) { showMessage('register-step2-message', 'Hai mật khẩu không khớp.', 'error'); return; }
+      if (pwd1 !== pwd2) { showMessage('register-step2-message', 'Mật khẩu không khớp. / Passwords do not match.', 'error'); return; }
 
-      setButtonLoading(btn, true, 'Đang xử lý...', 'Hoàn tất đăng ký');
+      setButtonLoading(btn, true, 'Đang xử lý... / Processing...', 'Hoàn tất đăng ký / Complete');
       google.script.run
         .withSuccessHandler(function (res) {
-          setButtonLoading(btn, false, '', 'Hoàn tất đăng ký');
+          setButtonLoading(btn, false, '', 'Hoàn tất đăng ký / Complete');
           if (res.success) {
             showMessage('register-step2-message', res.message, 'success');
             setTimeout(function () {
@@ -160,8 +160,8 @@
           } else { showMessage('register-step2-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
-          setButtonLoading(btn, false, '', 'Hoàn tất đăng ký');
-          showMessage('register-step2-message', 'Lỗi: ' + err.message, 'error');
+          setButtonLoading(btn, false, '', 'Hoàn tất đăng ký / Complete');
+          showMessage('register-step2-message', 'Lỗi / Error: ' + err.message, 'error');
         })
         .api_completeRegister(pendingRegisterEmail, otp, pwd1);
     });
@@ -173,10 +173,10 @@
       const email = document.getElementById('forgot-email').value.trim();
       const btn = this.querySelector('button[type="submit"]');
 
-      setButtonLoading(btn, true, 'Đang gửi...', 'Gửi mã đặt lại');
+      setButtonLoading(btn, true, 'Đang gửi... / Sending...', 'Gửi mã đặt lại / Send Code');
       google.script.run
         .withSuccessHandler(function (res) {
-          setButtonLoading(btn, false, '', 'Gửi mã đặt lại');
+          setButtonLoading(btn, false, '', 'Gửi mã đặt lại / Send Code');
           if (res.success) {
             pendingResetEmail = email;
             document.getElementById('forgot-email-display').textContent = email;
@@ -185,8 +185,8 @@
           } else { showMessage('forgot-step1-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
-          setButtonLoading(btn, false, '', 'Gửi mã đặt lại');
-          showMessage('forgot-step1-message', 'Lỗi: ' + err.message, 'error');
+          setButtonLoading(btn, false, '', 'Gửi mã đặt lại / Send Code');
+          showMessage('forgot-step1-message', 'Lỗi / Error: ' + err.message, 'error');
         })
         .api_requestPasswordReset(email);
     });
@@ -204,12 +204,12 @@
       const pwd2 = document.getElementById('forgot-password2').value;
       const btn = this.querySelector('button[type="submit"]');
 
-      if (pwd1 !== pwd2) { showMessage('forgot-step2-message', 'Mật khẩu không khớp.', 'error'); return; }
+      if (pwd1 !== pwd2) { showMessage('forgot-step2-message', 'Mật khẩu không khớp. / Passwords do not match.', 'error'); return; }
 
-      setButtonLoading(btn, true, 'Đang xử lý...', 'Đặt lại mật khẩu');
+      setButtonLoading(btn, true, 'Đang xử lý... / Processing...', 'Đặt lại mật khẩu / Reset');
       google.script.run
         .withSuccessHandler(function (res) {
-          setButtonLoading(btn, false, '', 'Đặt lại mật khẩu');
+          setButtonLoading(btn, false, '', 'Đặt lại mật khẩu / Reset');
           if (res.success) {
             showMessage('forgot-step2-message', res.message, 'success');
             setTimeout(function () {
@@ -226,8 +226,8 @@
           } else { showMessage('forgot-step2-message', res.message, 'error'); }
         })
         .withFailureHandler(function (err) {
-          setButtonLoading(btn, false, '', 'Đặt lại mật khẩu');
-          showMessage('forgot-step2-message', 'Lỗi: ' + err.message, 'error');
+          setButtonLoading(btn, false, '', 'Đặt lại mật khẩu / Reset');
+          showMessage('forgot-step2-message', 'Lỗi / Error: ' + err.message, 'error');
         })
         .api_completePasswordReset(pendingResetEmail, otp, pwd1);
     });
@@ -256,7 +256,7 @@
 
   function loadFolders() {
     const listEl = document.getElementById('folder-list');
-    listEl.innerHTML = '<div class="sidebar-empty">Đang tải danh mục...</div>';
+    listEl.innerHTML = '<div class="sidebar-empty">Đang tải / Loading...</div>';
 
     google.script.run
       .withSuccessHandler(function (res) {
@@ -264,24 +264,81 @@
         currentFolders = res.folders;
         renderFolderList();
       })
-      .withFailureHandler(function (err) { listEl.innerHTML = '<div class="sidebar-empty">Lỗi: ' + escapeHtml(err.message) + '</div>'; })
+      .withFailureHandler(function (err) { listEl.innerHTML = '<div class="sidebar-empty">Lỗi / Error: ' + escapeHtml(err.message) + '</div>'; })
       .api_getAccessibleFolders(currentSession.email, currentSession.sessionToken);
   }
 
   function renderFolderList() {
     const listEl = document.getElementById('folder-list');
     if (!currentFolders.length) {
-      listEl.innerHTML = '<div class="sidebar-empty">Chưa có quyền xem tài liệu.</div>';
+      listEl.innerHTML = '<div class="sidebar-empty">Chưa có quyền xem tài liệu.<br><i>No permission to view files.</i></div>';
       return;
     }
     listEl.innerHTML = '';
-    currentFolders.forEach(function (folder) {
-      const btn = document.createElement('button');
-      btn.className = 'sidebar-item' + (folder.key === currentFolderKey ? ' active' : '');
-      btn.innerHTML = '<span class="sidebar-icon">📁</span><span>' + escapeHtml(folder.name) + '</span>';
-      btn.addEventListener('click', function () { openFolder(folder.key); });
-      listEl.appendChild(btn);
+
+    const folderMap = {};
+    const roots = [];
+
+    currentFolders.forEach(function(f) {
+      folderMap[f.key] = Object.assign({}, f, { children: [] });
     });
+
+    currentFolders.forEach(function(f) {
+      if (f.parentKey && folderMap[f.parentKey]) {
+        folderMap[f.parentKey].children.push(folderMap[f.key]);
+      } else {
+        roots.push(folderMap[f.key]);
+      }
+    });
+
+    function renderNodes(nodes, container, level) {
+      nodes.forEach(function(node) {
+        const hasChildren = node.children.length > 0;
+        const wrapper = document.createElement('div');
+        
+        const btn = document.createElement('button');
+        btn.className = 'sidebar-item' + (node.key === currentFolderKey ? ' active' : '');
+        btn.style.paddingLeft = (10 + level * 20) + 'px'; 
+        
+        const toggleSpan = document.createElement('span');
+        toggleSpan.innerHTML = hasChildren ? '▼' : '';
+        toggleSpan.style.width = '20px';
+        toggleSpan.style.display = 'inline-block';
+        toggleSpan.style.textAlign = 'center';
+        
+        if (hasChildren) {
+          toggleSpan.style.cursor = 'pointer';
+          toggleSpan.onclick = function(e) {
+            e.stopPropagation(); 
+            const childDiv = document.getElementById('child-' + node.key);
+            if (childDiv) {
+              const isHidden = childDiv.style.display === 'none';
+              childDiv.style.display = isHidden ? 'block' : 'none';
+              toggleSpan.innerHTML = isHidden ? '▼' : '▶'; 
+            }
+          };
+        }
+
+        const labelSpan = document.createElement('span');
+        labelSpan.innerHTML = '<span class="sidebar-icon" style="margin-right:8px">📁</span><span>' + escapeHtml(node.name) + '</span>';
+        
+        btn.appendChild(toggleSpan);
+        btn.appendChild(labelSpan);
+        btn.onclick = function() { openFolder(node.key); };
+        
+        wrapper.appendChild(btn);
+
+        if (hasChildren) {
+          const childContainer = document.createElement('div');
+          childContainer.id = 'child-' + node.key;
+          renderNodes(node.children, childContainer, level + 1);
+          wrapper.appendChild(childContainer);
+        }
+        
+        container.appendChild(wrapper);
+      });
+    }
+    renderNodes(roots, listEl, 0);
   }
 
   function bindFolderNavigationButtons() {
@@ -305,7 +362,7 @@
     document.getElementById('content-empty-state').style.display = 'none';
     document.getElementById('file-viewer-view').style.display = 'none';
     document.getElementById('file-list-view').style.display = '';
-    document.getElementById('file-grid').innerHTML = '<div class="sidebar-empty">Đang tải tài liệu...</div>';
+    document.getElementById('file-grid').innerHTML = '<div class="sidebar-empty">Đang tải / Loading...</div>';
 
     google.script.run
       .withSuccessHandler(function (res) {
@@ -317,7 +374,7 @@
         renderFileGrid(res.files);
       })
       .withFailureHandler(function (err) {
-        document.getElementById('file-grid').innerHTML = '<div class="sidebar-empty">Lỗi: ' + escapeHtml(err.message) + '</div>';
+        document.getElementById('file-grid').innerHTML = '<div class="sidebar-empty">Lỗi / Error: ' + escapeHtml(err.message) + '</div>';
       })
       .api_getFilesInFolder(currentSession.email, currentSession.sessionToken, folderKey, subFolderId);
   }
@@ -325,14 +382,14 @@
   function renderFileGrid(files) {
     const grid = document.getElementById('file-grid');
     if (!files.length) {
-      grid.innerHTML = '<div class="sidebar-empty">Danh mục này chưa có tài liệu nào.</div>';
+      grid.innerHTML = '<div class="sidebar-empty">Danh mục này chưa có tài liệu nào.<br><i>This folder is empty.</i></div>';
       return;
     }
     grid.innerHTML = '';
     files.forEach(function (file) {
       const card = document.createElement('div');
       card.className = 'file-card';
-      const metaText = file.mimeType === 'application/vnd.google-apps.folder' ? 'Thư mục' : formatBytes(file.sizeBytes);
+      const metaText = file.mimeType === 'application/vnd.google-apps.folder' ? 'Thư mục / Folder' : formatBytes(file.sizeBytes);
       card.innerHTML =
         '<div class="file-card-icon">' + iconForMime(file.mimeType) + '</div>' +
         '<div class="file-card-name">' + escapeHtml(file.name) + '</div>' +
