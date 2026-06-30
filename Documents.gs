@@ -1,3 +1,63 @@
+/****************************************************************
+ * DOCUMENTS.GS - LẤY DANH MỤC FOLDER/TÀI LIỆU THEO PHÂN QUYỀN
+ ****************************************************************/
+
+/**
+ * 1. Hàm lấy quyền ĐỌC: Được cấp quyền thư mục mẹ -> tự động có quyền đọc thư mục con
+ */
+function getReadAccessKeys_(email, allFolders) {
+  const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
+  
+  let baseKeys = [];
+  const userPermissionRow = permissions.find(p => normalizeEmail_(p.Email) === normalizeEmail_(email));
+  if (userPermissionRow && userPermissionRow.FolderKey) {
+    baseKeys = String(userPermissionRow.FolderKey)
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k !== '');
+  }
+
+  let expandedKeys = new Set(baseKeys);
+  let added = true;
+  while (added) {
+    added = false;
+    allFolders.forEach(f => {
+      const parentKey = f.ParentKey ? String(f.ParentKey).trim() : '';
+      const folderKey = f.FolderKey ? String(f.FolderKey).trim() : '';
+      // Nếu có quyền đọc thư mục cha -> tự động cấp quyền đọc thư mục con
+      if (parentKey && expandedKeys.has(parentKey) && !expandedKeys.has(folderKey)) {
+        expandedKeys.add(folderKey);
+        added = true;
+      }
+    });
+  }
+  return Array.from(expandedKeys);
+}
+
+/**
+ * 2. Hàm lấy quyền HIỂN THỊ: Được cấp quyền thư mục con -> tự động vẽ thư mục mẹ để tạo hình cây
+ */
+function getDisplayFolderKeys_(readAccessKeys, allFolders) {
+  let displayKeys = new Set(readAccessKeys);
+  let added = true;
+  while (added) {
+    added = false;
+    allFolders.forEach(f => {
+      const parentKey = f.ParentKey ? String(f.ParentKey).trim() : '';
+      const folderKey = f.FolderKey ? String(f.FolderKey).trim() : '';
+      // Nếu có hiển thị thư mục con -> bắt buộc phải hiển thị thư mục cha chứa nó
+      if (parentKey && displayKeys.has(folderKey) && !displayKeys.has(parentKey)) {
+        displayKeys.add(parentKey);
+        added = true;
+      }
+    });
+  }
+  return Array.from(displayKeys);
+}
+
+/**
+ * Trả về danh sách folder để vẽ lên giao diện
+ */
 function api_getAccessibleFolders(email, sessionToken) {
   const session = api_checkSession(email, sessionToken);
   if (!session.valid) {
@@ -5,31 +65,26 @@ function api_getAccessibleFolders(email, sessionToken) {
   }
   email = normalizeEmail_(email);
 
-  const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
   const allFolders = readSheetAsObjects_(CONFIG.SHEET_FOLDERS);
-
-  // --- CẬP NHẬT: Lấy danh sách FolderKey từ 1 dòng, cắt bằng dấu phẩy ---
-  let allowedKeys = [];
-  const userPermissionRow = permissions.find(p => normalizeEmail_(p.Email) === email);
-  if (userPermissionRow && userPermissionRow.FolderKey) {
-    allowedKeys = String(userPermissionRow.FolderKey)
-      .split(',')                     // Cắt chuỗi theo dấu phẩy
-      .map(k => k.trim())             // Loại bỏ khoảng trắng 2 đầu mỗi key
-      .filter(k => k !== '');         // Bỏ qua các giá trị rỗng (ví dụ người dùng gõ dư dấu phẩy)
-  }
-  // ----------------------------------------------------------------------
+  const readKeys = getReadAccessKeys_(email, allFolders);
+  // Dùng displayKeys để quyết định xem những thư mục nào sẽ hiện trên thanh bên trái
+  const displayKeys = getDisplayFolderKeys_(readKeys, allFolders);
 
   const folders = allFolders
-    .filter(f => allowedKeys.includes(String(f.FolderKey).trim()))
+    .filter(f => displayKeys.includes(String(f.FolderKey).trim()))
     .map(f => ({
       key: f.FolderKey,
       name: f.FolderName,
       folderId: f.FolderId,
-      description: f.Description || ''
+      description: f.Description || '',
+      parentKey: f.ParentKey ? String(f.ParentKey).trim() : ''
     }));
   return { success: true, folders: folders };
 }
 
+/**
+ * Trả về danh sách file và thư mục con khi click vào
+ */
 function api_getFilesInFolder(email, sessionToken, folderKey, subFolderId) {
   const session = api_checkSession(email, sessionToken);
   if (!session.valid) {
@@ -37,24 +92,15 @@ function api_getFilesInFolder(email, sessionToken, folderKey, subFolderId) {
   }
   email = normalizeEmail_(email);
 
-  const permissions = readSheetAsObjects_(CONFIG.SHEET_PERMISSIONS);
-  
-  // --- CẬP NHẬT: Kiểm tra quyền truy cập theo mảng sau khi cắt dấu phẩy ---
-  let hasAccess = false;
-  const userPermissionRow = permissions.find(p => normalizeEmail_(p.Email) === email);
-  if (userPermissionRow && userPermissionRow.FolderKey) {
-    const allowedKeys = String(userPermissionRow.FolderKey)
-      .split(',')
-      .map(k => k.trim());
-    hasAccess = allowedKeys.includes(String(folderKey).trim());
-  }
-  // ------------------------------------------------------------------------
-
-  if (!hasAccess) {
-    return { success: false, message: 'Bạn không có quyền truy cập danh mục này.', files: [] };
-  }
-
   const allFolders = readSheetAsObjects_(CONFIG.SHEET_FOLDERS);
+  // Chú ý: Tại đây chỉ dùng readKeys. Nếu cố click vào thư mục mẹ (chỉ có displayKeys), sẽ bị chặn!
+  const readKeys = getReadAccessKeys_(email, allFolders);
+
+  const hasAccess = readKeys.includes(String(folderKey).trim());
+  if (!hasAccess) {
+    return { success: false, message: 'Thư mục này chỉ hiển thị để xem cấu trúc, bạn không có quyền xem tài liệu bên trong.', files: [] };
+  }
+
   const folderInfo = allFolders.find(f => String(f.FolderKey).trim() === String(folderKey).trim());
   if (!folderInfo) {
     return { success: false, message: 'Không tìm thấy danh mục.', files: [] };
